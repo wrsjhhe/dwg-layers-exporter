@@ -6,6 +6,7 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using System.Collections.Generic;
+using System.Windows.Forms;
 
 [assembly: CommandClass(typeof(outputlayer.MyCommands))]
 
@@ -20,8 +21,18 @@ namespace outputlayer
         [CommandMethod("Getlayer", CommandFlags.Modal)]
         public void Getlayer() 
         {
-            
-            Document doc = Application.DocumentManager.MdiActiveDocument;
+            string dir = null;
+            System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                string foldPath = dialog.SelectedPath;
+                dir = foldPath;
+            }
+
+            if (dir == null)
+                return;
+
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
             Autodesk.AutoCAD.DatabaseServices.TransactionManager tm = db.TransactionManager;
@@ -60,35 +71,9 @@ namespace outputlayer
 
                     db.WblockCloneObjects(sourceIds, destDbMsId, mapping, DuplicateRecordCloning.Replace, false);
 
-                    destDb.SaveAs(@"E:\copied\"+ layerName+".dwg", DwgVersion.Current);
+                    destDb.SaveAs(dir + "\\" + layerName+".dwg", DwgVersion.Current);
                 }
-
-
-
             });
-            //SelectAll(null, (ids) =>
-            //{
-            //    ObjectIdCollection sourceIds = new ObjectIdCollection();
-            //    foreach (var id in ids)
-            //    {
-            //        Entity entity = (Entity)tm.GetObject(id, OpenMode.ForWrite, true);
-
-            //        sourceIds.Add(entity.Id);
-            //    }
-
-            //    Database destDb = new Database(true, true);
-
-            //    ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-
-            //    ObjectId destDbMsId = SymbolUtilityServices.GetBlockModelSpaceId(destDb);
-
-            //    IdMapping mapping = new IdMapping();
-
-            //    db.WblockCloneObjects(sourceIds, destDbMsId, mapping, DuplicateRecordCloning.Replace, false);
-
-            //    destDb.SaveAs(@"E:\copytest\CopyTest.dwg", DwgVersion.Current);
-
-            //});
 
         }
 
@@ -110,42 +95,9 @@ namespace outputlayer
             return lstlay;
         }
 
-        static public void SelectAll(string type, Action<ObjectId[]> handler)
-        {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-            PromptSelectionResult res;
-
-            if (type == null)
-            {
-                res = ed.SelectAll();
-            }
-            else
-            {
-                TypedValue[] value = {
-                new TypedValue((int)DxfCode.Start, type)
-            };
-                SelectionFilter sf = new SelectionFilter(value);
-                res = ed.SelectAll(sf);
-            }
-
-            SelectionSet SS = res.Value;
-            if (SS == null)
-                return;
-
-            ObjectId[] idArray = SS.GetObjectIds();
-
-            Autodesk.AutoCAD.DatabaseServices.TransactionManager tm = db.TransactionManager;
-
-            TransactionControl(() =>
-            {
-                handler(idArray);
-            });
-        }
         static public void TransactionControl(Action handler)
         {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
             Autodesk.AutoCAD.DatabaseServices.TransactionManager tm = db.TransactionManager;
